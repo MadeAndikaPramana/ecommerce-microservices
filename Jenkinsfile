@@ -16,27 +16,27 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 echo 'Building backend Docker image...'
-                sh 'docker-compose build backend'
+                sh 'docker-compose -f docker-compose.ci.yml build backend'
             }
         }
         
         stage('Run Tests') {
             steps {
-                echo 'Starting services with unique project name...'
-                sh 'docker-compose -p ${COMPOSE_PROJECT_NAME} up -d'
+                echo 'Starting services for testing...'
+                sh 'docker-compose -f docker-compose.ci.yml -p ${COMPOSE_PROJECT_NAME} up -d'
                 
                 echo 'Waiting for services to be ready...'
                 sh 'sleep 10'
                 
                 echo 'Running Laravel tests...'
-                sh 'docker-compose -p ${COMPOSE_PROJECT_NAME} exec -T backend php artisan test || true'
+                sh 'docker-compose -f docker-compose.ci.yml -p ${COMPOSE_PROJECT_NAME} exec -T backend php artisan test || true'
             }
         }
         
         stage('Cleanup') {
             steps {
                 echo 'Stopping and removing containers...'
-                sh 'docker-compose -p ${COMPOSE_PROJECT_NAME} down -v || true'
+                sh 'docker-compose -f docker-compose.ci.yml -p ${COMPOSE_PROJECT_NAME} down -v'
                 
                 echo 'Pruning Docker system...'
                 sh 'docker system prune -f'
@@ -46,7 +46,7 @@ pipeline {
     
     post {
         always {
-            sh 'docker-compose -p ${COMPOSE_PROJECT_NAME} down -v || true'
+            sh 'docker-compose -f docker-compose.ci.yml -p ${COMPOSE_PROJECT_NAME} down -v || true'
         }
         success {
             echo 'Build and tests completed successfully!'
